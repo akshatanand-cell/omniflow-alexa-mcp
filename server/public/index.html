@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OmniFlow — Alexa+ Agentic Multi-Modal Copilot</title>
+  <!-- Tailwind CSS & Lucide Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.15); opacity: 0.3; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .alexa-glow {
+      box-shadow: 0 0 35px -5px rgba(0, 168, 225, 0.5), 0 0 15px 0 rgba(35, 47, 62, 0.8);
+    }
+    .card-hover:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    }
+    /* Hide scrollbar for carousel */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-cyan-500 selection:text-white">
+
+  <!-- Top App Navigation -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <!-- Alexa Echo Show Dot -->
+        <div class="relative w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+          <i data-lucide="sparkles" class="w-4 h-4 text-white"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold tracking-tight flex items-center gap-2">
+            OmniFlow <span class="text-xs bg-cyan-900/60 text-cyan-300 px-2 py-0.5 rounded-full border border-cyan-700/50">Alexa+ MCP Copilot</span>
+          </h1>
+          <p class="text-xs text-slate-400">Model Context Protocol (v2025-11-25) & Amazon Bedrock</p>
+        </div>
+      </div>
+
+      <!-- Live Protocol & Server Badges -->
+      <div class="flex items-center gap-3">
+        <div id="mcpStatus" class="hidden sm:flex items-center gap-1.5 text-xs bg-emerald-950/60 text-emerald-400 border border-emerald-800/60 px-2.5 py-1 rounded-full">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          MCP Streamable HTTP Active
+        </div>
+        <button id="toggleInspectorBtn" class="flex items-center gap-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg text-slate-300 transition">
+          <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
+          MCP Protocol Inspector
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- Left & Center: Echo Show Multi-Modal Stage (8 cols) -->
+    <section class="lg:col-span-8 flex flex-col space-y-5">
+
+      <!-- Alexa+ Multi-Modal Header Card -->
+      <div class="bg-gradient-to-b from-slate-900 to-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl relative overflow-hidden">
+        <div class="absolute -right-12 -top-12 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="flex items-center gap-4">
+            <!-- Alexa Sound Orb -->
+            <div id="alexaOrb" class="w-14 h-14 rounded-full bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600 flex items-center justify-center shadow-lg alexa-glow transition-all duration-300">
+              <i data-lucide="mic" id="micIcon" class="w-6 h-6 text-white"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-semibold uppercase tracking-wider text-cyan-400">Alexa+ Ambient Mode</span>
+                <span class="text-[10px] text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">Multi-Modal</span>
+              </div>
+              <p id="alexaStatusText" class="text-sm font-medium text-slate-200 mt-0.5">"I'm ready. Ask me to plan an event, find gear on Amazon, or optimize your trip."</p>
+            </div>
+          </div>
+
+          <!-- Quick Action Buttons -->
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <button id="voiceBtn" class="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-medium text-xs px-4 py-2.5 rounded-xl shadow-md transition">
+              <i data-lucide="mic" class="w-4 h-4"></i>
+              <span id="voiceBtnText">Tap to Speak</span>
+            </button>
+            <button id="speakerToggleBtn" title="Toggle Spoken Audio" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300">
+              <i data-lucide="volume-2" id="speakerIcon" class="w-4 h-4 text-cyan-400"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Sample Query Chips -->
+        <div class="mt-4 pt-3 border-t border-slate-800/80 flex flex-wrap items-center gap-2">
+          <span class="text-xs text-slate-400 flex items-center gap-1 mr-1">
+            <i data-lucide="lightbulb" class="w-3.5 h-3.5 text-amber-400"></i> Try:
+          </span>
+          <button class="sample-chip text-xs bg-slate-800/90 hover:bg-slate-700 text-cyan-300 border border-slate-700/80 rounded-lg px-2.5 py-1 transition" data-query="Plan a 3-day camping trip to Olympic National Park under $300 and buy needed gear">
+            🏕️ 3-Day Olympic NP Trip under $300
+          </button>
+          <button class="sample-chip text-xs bg-slate-800/90 hover:bg-slate-700 text-cyan-300 border border-slate-700/80 rounded-lg px-2.5 py-1 transition" data-query="Find top-rated Prime outdoor lanterns and camp stoves with next-day delivery">
+            🔦 Prime Camping Gear Deals
+          </button>
+          <button class="sample-chip text-xs bg-slate-800/90 hover:bg-slate-700 text-cyan-300 border border-slate-700/80 rounded-lg px-2.5 py-1 transition" data-query="Review my cart, apply bundle discounts, and confirm checkout">
+            🛒 Optimize Cart & Checkout
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Dynamic Visual Stage (Where MCP generated Cards appear) -->
+      <div id="visualStage" class="space-y-5">
+        <!-- Initial Welcome Placeholder -->
+        <div id="emptyStage" class="border border-dashed border-slate-800 bg-slate-900/40 rounded-2xl p-10 text-center">
+          <div class="w-14 h-14 mx-auto rounded-full bg-slate-800/80 flex items-center justify-center text-cyan-400 mb-3">
+            <i data-lucide="layout-dashboard" class="w-7 h-7"></i>
+          </div>
+          <h3 class="text-base font-semibold text-slate-200">Interactive Alexa+ Display</h3>
+          <p class="text-sm text-slate-400 max-w-md mx-auto mt-1">
+            Tap one of the sample prompt chips above or type a command below. OmniFlow will execute an agentic tool chain over MCP and display multi-modal UI cards right here.
+          </p>
+        </div>
+      </div>
+
+      <!-- User Text Prompt Input -->
+      <form id="promptForm" class="relative mt-auto">
+        <div class="relative flex items-center">
+          <input
+            id="promptInput"
+            type="text"
+            placeholder="Tell Alexa+ what you need (e.g. Plan a weekend trip to Seattle under $350 and order gear)..."
+            class="w-full bg-slate-900 border border-slate-800 focus:border-cyan-500 rounded-xl pl-4 pr-24 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 transition"
+          />
+          <button
+            type="submit"
+            id="sendBtn"
+            class="absolute right-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-1.5 transition"
+          >
+            <span>Ask</span>
+            <i data-lucide="send" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </form>
+
+    </section>
+
+    <!-- Right Column: Agent Workflow & MCP Live Execution (4 cols) -->
+    <aside class="lg:col-span-4 flex flex-col space-y-5">
+
+      <!-- Autonomous Agent Execution Timeline -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col flex-1">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+          <div class="flex items-center gap-2">
+            <i data-lucide="git-branch" class="w-4 h-4 text-cyan-400"></i>
+            <h2 class="text-sm font-bold text-slate-200">Agent Reasoning Loop</h2>
+          </div>
+          <span id="agentModelBadge" class="text-[10px] bg-indigo-950 text-indigo-300 border border-indigo-800 px-2 py-0.5 rounded">
+            Bedrock Claude 3.5
+          </span>
+        </div>
+
+        <div id="agentStepsContainer" class="space-y-3 flex-1 overflow-y-auto max-h-[460px] pr-1">
+          <div class="text-xs text-slate-500 italic p-3 text-center">
+            Agent reasoning steps and tool calls will stream here during execution.
+          </div>
+        </div>
+
+        <!-- System Architecture Pill -->
+        <div class="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-slate-400 flex items-center justify-between">
+          <span class="flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+            MCP Tools Registered: 4
+          </span>
+          <a href="/mcp/info" target="_blank" class="text-cyan-400 hover:underline flex items-center gap-1">
+            <span>/mcp/info</span>
+            <i data-lucide="external-link" class="w-3 h-3"></i>
+          </a>
+        </div>
+      </div>
+
+    </aside>
+
+  </main>
+
+  <!-- MCP JSON-RPC Inspector Drawer (Modal / Bottom Sheet) -->
+  <div id="inspectorDrawer" class="hidden fixed inset-x-0 bottom-0 bg-slate-900 border-t border-slate-800 shadow-2xl z-50 transition-all max-h-[50vh] flex flex-col">
+    <div class="px-6 py-3 border-b border-slate-800 flex items-center justify-between bg-slate-950">
+      <div class="flex items-center gap-2">
+        <i data-lucide="code" class="w-4 h-4 text-cyan-400"></i>
+        <span class="text-xs font-bold text-slate-200">Model Context Protocol (MCP 2025-11-25) Streamable HTTP Inspector</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="clearLogsBtn" class="text-[11px] text-slate-400 hover:text-slate-200 px-2 py-1 bg-slate-800 rounded">Clear</button>
+        <button id="closeInspectorBtn" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+    <div id="mcpLogContent" class="p-4 font-mono text-xs overflow-y-auto space-y-2 text-slate-300 bg-slate-950/80 flex-1">
+      <div class="text-slate-500">// Live JSON-RPC 2.0 messages over streamable HTTP transport</div>
+    </div>
+  </div>
+
+  <!-- Client Script for UI Interactions and API Calls -->
+  <script>
+    let isSpeaking = false;
+    let voiceEnabled = true;
+
+    // Initialize Lucide icons
+    lucide.createIcons();
+
+    // DOM Elements
+    const promptForm = document.getElementById("promptForm");
+    const promptInput = document.getElementById("promptInput");
+    const visualStage = document.getElementById("visualStage");
+    const emptyStage = document.getElementById("emptyStage");
+    const agentStepsContainer = document.getElementById("agentStepsContainer");
+    const alexaStatusText = document.getElementById("alexaStatusText");
+    const alexaOrb = document.getElementById("alexaOrb");
+    const voiceBtn = document.getElementById("voiceBtn");
+    const voiceBtnText = document.getElementById("voiceBtnText");
+    const speakerToggleBtn = document.getElementById("speakerToggleBtn");
+    const speakerIcon = document.getElementById("speakerIcon");
+    const inspectorDrawer = document.getElementById("inspectorDrawer");
+    const toggleInspectorBtn = document.getElementById("toggleInspectorBtn");
+    const closeInspectorBtn = document.getElementById("closeInspectorBtn");
+    const mcpLogContent = document.getElementById("mcpLogContent");
+    const clearLogsBtn = document.getElementById("clearLogsBtn");
+
+    // Toggle Inspector
+    toggleInspectorBtn.addEventListener("click", () => {
+      inspectorDrawer.classList.toggle("hidden");
+    });
+    closeInspectorBtn.addEventListener("click", () => {
+      inspectorDrawer.classList.add("hidden");
+    });
+    clearLogsBtn.addEventListener("click", () => {
+      mcpLogContent.innerHTML = '<div class="text-slate-500">// Logs cleared</div>';
+    });
+
+    function logMcp(title, data, direction = "in") {
+      const entry = document.createElement("div");
+      entry.className = "p-2 rounded bg-slate-900 border " + (direction === "out" ? "border-cyan-800/60" : "border-slate-800");
+      entry.innerHTML = `
+        <div class="flex items-center justify-between text-[10px] text-slate-400 mb-1">
+          <span class="font-bold uppercase tracking-wider text-cyan-400">${direction === "out" ? "↑ CLIENT REQ" : "↓ MCP SERVER RES"} — ${title}</span>
+          <span>${new Date().toLocaleTimeString()}</span>
+        </div>
+        <pre class="overflow-x-auto text-[11px] text-slate-200">${escapeHtml(JSON.stringify(data, null, 2))}</pre>
+      `;
+      mcpLogContent.appendChild(entry);
+      mcpLogContent.scrollTop = mcpLogContent.scrollHeight;
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    // Toggle Speaker Audio
+    speakerToggleBtn.addEventListener("click", () => {
+      voiceEnabled = !voiceEnabled;
+      if (!voiceEnabled && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+      speakerIcon.className = voiceEnabled ? "w-4 h-4 text-cyan-400" : "w-4 h-4 text-slate-500";
+    });
+
+    // Web Speech Synthesis (Alexa voice)
+    function speakAlexa(text) {
+      if (!voiceEnabled || !('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.05;
+      utterance.pitch = 1.0;
+      alexaOrb.classList.add("animate-pulse");
+      utterance.onend = () => {
+        alexaOrb.classList.remove("animate-pulse");
+      };
+      window.speechSynthesis.speak(utterance);
+    }
+
+    // Web Speech Recognition
+    let recognition = null;
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      recognition.onstart = () => {
+        voiceBtnText.textContent = "Listening...";
+        alexaOrb.classList.add("animate-pulse");
+      };
+
+      recognition.onresult = (event) => {
+        const text = event.results[0][0].transcript;
+        promptInput.value = text;
+        submitQuery(text);
+      };
+
+      recognition.onerror = () => {
+        voiceBtnText.textContent = "Tap to Speak";
+        alexaOrb.classList.remove("animate-pulse");
+      };
+
+      recognition.onend = () => {
+        voiceBtnText.textContent = "Tap to Speak";
+        alexaOrb.classList.remove("animate-pulse");
+      };
+
+      voiceBtn.addEventListener("click", () => {
+        try {
+          recognition.start();
+        } catch (e) {
+          recognition.stop();
+        }
+      });
+    } else {
+      voiceBtn.addEventListener("click", () => {
+        promptInput.focus();
+      });
+    }
+
+    // Sample Chips Handler
+    document.querySelectorAll(".sample-chip").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const query = btn.getAttribute("data-query");
+        promptInput.value = query;
+        submitQuery(query);
+      });
+    });
+
+    promptForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const query = promptInput.value.trim();
+      if (query) submitQuery(query);
+    });
+
+    async function submitQuery(query) {
+      alexaStatusText.textContent = `Thinking: "${query}"...`;
+      alexaOrb.classList.add("animate-pulse");
+      
+      // Clear empty stage
+      if (emptyStage) emptyStage.remove();
+
+      // Clear steps
+      agentStepsContainer.innerHTML = '<div class="text-xs text-cyan-400 p-2 flex items-center gap-2"><i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i> Initializing Agent Reasoner...</div>';
+      lucide.createIcons();
+
+      // Log MCP Client Request
+      logMcp("POST /api/agent/chat", { message: query }, "out");
+
+      try {
+        const res = await fetch("/api/agent/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: query })
+        });
+        const data = await res.json();
+        
+        logMcp("Agent Execution Completed", data, "in");
+
+        // Update Alexa Status & Voice
+        alexaStatusText.textContent = data.spokenResponse;
+        speakAlexa(data.spokenResponse);
+
+        // Render Agent Steps
+        renderAgentSteps(data.steps);
+
+        // Render Multi-Modal Cards
+        renderCards(data.cards);
+
+      } catch (err) {
+        console.error("Error executing query:", err);
+        alexaStatusText.textContent = "Sorry, I encountered an issue executing this workflow.";
+      } finally {
+        alexaOrb.classList.remove("animate-pulse");
+      }
+    }
+
+    function renderAgentSteps(steps) {
+      agentStepsContainer.innerHTML = "";
+      steps.forEach(s => {
+        const el = document.createElement("div");
+        el.className = "text-xs p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/60";
+        if (s.thought) {
+          el.innerHTML = `
+            <div class="flex items-center gap-1.5 text-cyan-400 font-semibold mb-1">
+              <i data-lucide="brain-circuit" class="w-3.5 h-3.5"></i> ${s.agent}
+            </div>
+            <p class="text-slate-300 text-[11px] leading-relaxed">${escapeHtml(s.thought)}</p>
+          `;
+        } else if (s.action === "call_tool") {
+          el.innerHTML = `
+            <div class="flex items-center justify-between text-amber-300 font-semibold mb-1">
+              <span class="flex items-center gap-1.5">
+                <i data-lucide="wrench" class="w-3.5 h-3.5"></i> Call: ${s.tool}
+              </span>
+              <span class="text-[10px] bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">MCP Tool</span>
+            </div>
+            <pre class="text-[10px] bg-slate-900/90 p-1.5 rounded text-slate-400 overflow-x-auto">${escapeHtml(JSON.stringify(s.parameters))}</pre>
+          `;
+        } else if (s.summary) {
+          el.innerHTML = `
+            <div class="flex items-center gap-1.5 text-emerald-400 font-semibold mb-0.5">
+              <i data-lucide="check-circle" class="w-3.5 h-3.5"></i> ${s.tool} Finished
+            </div>
+            <p class="text-slate-300 text-[11px]">${escapeHtml(s.summary)}</p>
+          `;
+        }
+        agentStepsContainer.appendChild(el);
+      });
+      lucide.createIcons();
+    }
+
+    function renderCards(cards) {
+      visualStage.innerHTML = "";
+      cards.forEach(card => {
+        if (card.type === "itinerary_card") {
+          renderItineraryCard(card);
+        } else if (card.type === "product_carousel_card") {
+          renderProductCarousel(card);
+        } else if (card.type === "budget_summary_card") {
+          renderBudgetCard(card);
+        } else if (card.type === "order_action_card") {
+          renderOrderCard(card);
+        }
+      });
+      lucide.createIcons();
+    }
+
+    function renderItineraryCard(card) {
+      const el = document.createElement("div");
+      el.className = "bg-slate-900/95 border border-slate-800 rounded-2xl p-5 shadow-xl";
+      let daysHtml = "";
+      card.data.itinerary.forEach(d => {
+        daysHtml += `
+          <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-cyan-400">${d.date} • ${d.theme}</span>
+              <span class="text-[11px] text-slate-400">☀️ ${d.weatherForecast.high}°F / ${d.weatherForecast.low}°F</span>
+            </div>
+            <div class="space-y-1.5">
+              ${d.highlights.map(h => `
+                <div class="flex items-center justify-between text-xs text-slate-300">
+                  <span>• ${h.title}</span>
+                  <span class="text-slate-400 font-mono">${h.cost === 0 ? "Free" : "$" + h.cost}</span>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        `;
+      });
+
+      el.innerHTML = `
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <i data-lucide="map-pin" class="w-4 h-4 text-cyan-400"></i> ${card.title}
+            </h3>
+            <p class="text-xs text-slate-400">${card.subtitle}</p>
+          </div>
+          <span class="text-xs bg-cyan-950 text-cyan-400 border border-cyan-800 px-2.5 py-1 rounded-full font-medium">
+            3 Days Planned
+          </span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          ${daysHtml}
+        </div>
+      `;
+      visualStage.appendChild(el);
+    }
+
+    function renderProductCarousel(card) {
+      const el = document.createElement("div");
+      el.className = "bg-slate-900/95 border border-slate-800 rounded-2xl p-5 shadow-xl";
+      
+      let productsHtml = "";
+      card.products.forEach(p => {
+        productsHtml += `
+          <div class="min-w-[240px] max-w-[240px] bg-slate-800/80 border border-slate-700/70 rounded-xl p-3 flex flex-col justify-between card-hover transition duration-200">
+            <div>
+              <div class="relative w-full h-32 rounded-lg overflow-hidden bg-slate-900 mb-2">
+                <img src="${p.image}" alt="${p.title}" class="w-full h-full object-cover"/>
+                <span class="absolute top-1.5 left-1.5 text-[10px] font-bold bg-amber-500 text-slate-950 px-1.5 py-0.5 rounded shadow">
+                  ${p.badge}
+                </span>
+              </div>
+              <h4 class="text-xs font-semibold text-slate-100 line-clamp-2" title="${p.title}">${p.title}</h4>
+              <div class="flex items-center gap-1 mt-1 text-[11px] text-amber-400">
+                <span>★ ${p.rating}</span>
+                <span class="text-slate-400">(${p.reviews_count.toLocaleString()})</span>
+              </div>
+            </div>
+            <div class="mt-3 pt-2 border-t border-slate-700/80 flex items-center justify-between">
+              <div>
+                <span class="text-sm font-bold text-white font-mono">$${p.price}</span>
+                ${p.prime ? '<span class="ml-1 text-[10px] text-cyan-400 font-bold tracking-tight">prime</span>' : ''}
+              </div>
+              <button class="text-[11px] bg-cyan-600 hover:bg-cyan-500 text-white px-2 py-1 rounded font-medium transition">
+                Added
+              </button>
+            </div>
+          </div>
+        `;
+      });
+
+      el.innerHTML = `
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <i data-lucide="shopping-bag" class="w-4 h-4 text-amber-400"></i> ${card.title}
+            </h3>
+            <p class="text-xs text-slate-400">${card.subtitle}</p>
+          </div>
+          <span class="text-xs text-cyan-400 font-medium">Horizontal Scroll →</span>
+        </div>
+        <div class="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
+          ${productsHtml}
+        </div>
+      `;
+      visualStage.appendChild(el);
+    }
+
+    function renderBudgetCard(card) {
+      const c = card.cart;
+      const el = document.createElement("div");
+      el.className = "bg-slate-900/95 border border-slate-800 rounded-2xl p-5 shadow-xl";
+      
+      const percentUsed = Math.min(100, Math.round((c.final_total / c.budget_limit) * 100));
+
+      el.innerHTML = `
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <i data-lucide="calculator" class="w-4 h-4 text-emerald-400"></i> ${card.title}
+          </h3>
+          <span class="text-xs font-mono font-bold ${c.within_budget ? 'text-emerald-400' : 'text-rose-400'}">
+            ${c.within_budget ? '✓ Within Budget' : 'Exceeds Budget'}
+          </span>
+        </div>
+        <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden mb-3">
+          <div class="bg-gradient-to-r from-emerald-500 to-cyan-500 h-full transition-all duration-500" style="width: ${percentUsed}%"></div>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <div class="bg-slate-800/60 p-2.5 rounded-xl border border-slate-700/60">
+            <span class="text-slate-400 block text-[10px]">Budget Cap</span>
+            <span class="text-sm font-bold font-mono text-white">$${c.budget_limit}.00</span>
+          </div>
+          <div class="bg-slate-800/60 p-2.5 rounded-xl border border-slate-700/60">
+            <span class="text-slate-400 block text-[10px]">Bundle Savings</span>
+            <span class="text-sm font-bold font-mono text-emerald-400">-$${c.bundle_discount}</span>
+          </div>
+          <div class="bg-slate-800/60 p-2.5 rounded-xl border border-slate-700/60">
+            <span class="text-slate-400 block text-[10px]">Estimated Tax</span>
+            <span class="text-sm font-bold font-mono text-slate-300">+$${c.estimated_tax}</span>
+          </div>
+          <div class="bg-cyan-950/60 p-2.5 rounded-xl border border-cyan-800/60">
+            <span class="text-cyan-300 block text-[10px]">Final Cart Total</span>
+            <span class="text-sm font-bold font-mono text-cyan-300">$${c.final_total}</span>
+          </div>
+        </div>
+      `;
+      visualStage.appendChild(el);
+    }
+
+    function renderOrderCard(card) {
+      const o = card.order;
+      const el = document.createElement("div");
+      el.id = "orderActionCard";
+      el.className = "bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border-2 border-cyan-500/80 rounded-2xl p-5 shadow-2xl relative overflow-hidden";
+      
+      el.innerHTML = `
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="space-y-1 text-center sm:text-left">
+            <div class="flex items-center justify-center sm:justify-start gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></span>
+              <h3 class="text-base font-bold text-white">${card.title}</h3>
+            </div>
+            <p class="text-xs text-slate-300">
+              Deliver to: <span class="font-medium text-white">${o.delivery_address}</span> (${o.delivery_speed})
+            </p>
+            <p class="text-[11px] text-cyan-300">
+              Guaranteed arrival: ${o.estimated_arrival} • Guardrail Authorized
+            </p>
+          </div>
+          <div class="flex items-center gap-3">
+            <button id="confirmOrderBtn" class="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs px-5 py-3 rounded-xl shadow-lg transition flex items-center gap-2">
+              <i data-lucide="check" class="w-4 h-4"></i>
+              <span>Confirm Order ($${o.total_amount})</span>
+            </button>
+          </div>
+        </div>
+      `;
+      visualStage.appendChild(el);
+
+      const confirmBtn = el.querySelector("#confirmOrderBtn");
+      confirmBtn.addEventListener("click", async () => {
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Processing...`;
+        lucide.createIcons();
+        
+        try {
+          const res = await fetch("/api/agent/confirm-order", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ cart_id: o.cart_id, total: o.total_amount })
+          });
+          const resultData = await res.json();
+          
+          el.innerHTML = `
+            <div class="flex items-center gap-3 text-emerald-400">
+              <div class="w-10 h-10 rounded-full bg-emerald-950 border border-emerald-800 flex items-center justify-center">
+                <i data-lucide="check-check" class="w-5 h-5 text-emerald-400"></i>
+              </div>
+              <div>
+                <h4 class="text-sm font-bold text-white">Order Confirmed! #${resultData.result.order_id}</h4>
+                <p class="text-xs text-slate-300">${resultData.message}</p>
+              </div>
+            </div>
+          `;
+          lucide.createIcons();
+          speakAlexa(resultData.message);
+        } catch (e) {
+          console.error(e);
+        }
+      });
+    }
+
+    // Connect to MCP Streamable HTTP /events on page load
+    try {
+      const eventSource = new EventSource("/mcp/stream");
+      eventSource.onmessage = (event) => {
+        try {
+          const parsed = JSON.parse(event.data);
+          logMcp("STREAM EVENT", parsed, "in");
+        } catch(e) {}
+      };
+    } catch(e) {
+      console.warn("SSE Stream not supported or offline", e);
+    }
+  </script>
+</body>
+</html>

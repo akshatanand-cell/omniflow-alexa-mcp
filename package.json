@@ -1,0 +1,34 @@
+{
+  "name": "omniflow-alexa-mcp",
+  "version": "1.0.0",
+  "description": "Autonomous Alexa+ Agent Skill & MCP Server with Amazon Bedrock integration and Multi-Modal Visual UI",
+  "type": "module",
+  "scripts": {
+    "start": "node server/src/index.js",
+    "dev:server": "node --watch server/src/index.js",
+    "dev": "concurrently \"node server/src/index.js\" \"npm run dev --prefix client\"",
+    "build:client": "npm run build --prefix client",
+    "test": "node server/tests/mcp-test.js"
+  },
+  "keywords": [
+    "alexa-plus",
+    "mcp",
+    "model-context-protocol",
+    "amazon-bedrock",
+    "aws",
+    "agentic-ai",
+    "fire-tv"
+  ],
+  "author": "OmniFlow Team",
+  "license": "MIT",
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.750.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
