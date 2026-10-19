@@ -1,9 +1,9 @@
 import os
-import subprocess
-from PIL import Image, ImageDraw, ImageFont
-import pyttsx3
-
 import sys
+import subprocess
+import asyncio
+from PIL import Image, ImageDraw, ImageFont
+
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8")
     sys.stderr.reconfigure(encoding="utf-8")
@@ -12,6 +12,9 @@ OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "video_assets")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 WIDTH, HEIGHT = 1920, 1080
+
+# Professional Neural AI Voice (Aria is crisp, fluent, and professional)
+NEURAL_VOICE = "en-US-AriaNeural"
 
 SLIDES = [
     {
@@ -24,7 +27,7 @@ SLIDES = [
             "Integrated with Amazon Bedrock using Claude 3.5 Sonnet for multi-step reasoning.",
             "Designed for multi-modal screen devices: Echo Show, Fire TV, and modern Web clients."
         ],
-        "speech": "Welcome to OmniFlow, an autonomous life and commerce copilot built for the Amazon Developer Hackathon 2026. While traditional voice assistants are reactive, OmniFlow leverages the Model Context Protocol and Amazon Bedrock to execute complex multi-step goals.",
+        "speech": "Hi everyone! Welcome to OmniFlow, an autonomous life and commerce copilot built for the Amazon Developer Hackathon 2026. While traditional voice assistants are reactive, OmniFlow leverages the Model Context Protocol and Amazon Bedrock to autonomously plan, compare, and execute complex multi-step goals.",
         "color": (0, 168, 225) # Alexa Cyan
     },
     {
@@ -37,7 +40,7 @@ SLIDES = [
             "optimize_budget_cart: Analyzes budget ceilings and applies bundle discounts.",
             "confirm_order_execution: Enforces human-in-the-loop one-touch authorization."
         ],
-        "speech": "OmniFlow implements the official 2025-11-25 MCP specification over Streamable HTTP. It exposes four specialized tools for itinerary generation, Amazon product search, budget optimization, and secure one-click checkout.",
+        "speech": "OmniFlow implements the official 2025-11-25 MCP specification over modern Streamable HTTP transports. It registers four specialized tools: planning itineraries, searching Amazon for Prime gear, optimizing bundle budgets, and securing one-click checkout.",
         "color": (16, 185, 129) # Emerald
     },
     {
@@ -50,7 +53,7 @@ SLIDES = [
             "Step 3: Cart & Budget Optimization - Bundle discount applied (-$12.50), final total $163.97.",
             "Step 4: Budget Enforcement - Total falls safely within the user's $300 limit."
         ],
-        "speech": "When a user gives a high-level goal, such as planning a camping trip under 300 dollars, OmniFlow deconstructs the request, queries tools in sequence, finds Prime-eligible gear, and verifies budget compliance automatically.",
+        "speech": "When a user gives a high-level goal, such as planning a camping trip under 300 dollars, OmniFlow deconstructs the request, queries tools in sequence, finds top-rated Prime camping essentials, and ensures the total remains strictly within budget.",
         "color": (245, 158, 11) # Amber
     },
     {
@@ -63,7 +66,7 @@ SLIDES = [
             "Real-Time Budget Meter: Visual progress tracking against the user's budget ceiling.",
             "Integrated Speech: Bi-directional speech recognition and ambient Alexa voice synthesis."
         ],
-        "speech": "Rather than returning plain text, OmniFlow generates interactive multi-modal cards. Users can swipe through Prime product carousels, inspect daily itinerary highlights, and monitor their budget in real time.",
+        "speech": "Rather than returning plain audio answers, OmniFlow renders interactive multi-modal cards. Users can swipe through Prime product carousels, view interactive itinerary timelines, and track budget utilization in real time.",
         "color": (139, 92, 246) # Purple
     },
     {
@@ -76,7 +79,7 @@ SLIDES = [
             "Complete Product Feedback and Friction Log submitted for Amazon DevRel (+10% Bonus).",
             "Production deployment live at omniflow-alexa-mcp.vercel.app."
         ],
-        "speech": "OmniFlow includes a live MCP Protocol Inspector to monitor JSON-RPC messages in real time, and incorporates a human-in-the-loop guardrail before any order is finalized. Our project is open-source and live on Vercel.",
+        "speech": "OmniFlow also features a live Protocol Inspector for developers to examine streamable JSON-RPC messages, and enforces a human-in-the-loop guardrail before any transaction is executed. Our project is fully open source on GitHub and deployed live on Vercel. Thank you!",
         "color": (236, 72, 153) # Pink
     }
 ]
@@ -123,9 +126,9 @@ def render_slide(slide, index):
     draw.rounded_rectangle([(100, 170), (WIDTH - 100, 860)], radius=24, fill=(15, 23, 42), outline=(30, 41, 59), width=2)
 
     # Tag Pill
-    draw.rounded_rectangle([(160, 210), (340, 245)], radius=6, fill=slide["color"], outline=slide["color"], width=1)
+    draw.rounded_rectangle([(160, 210), (360, 248)], radius=6, fill=slide["color"], outline=slide["color"], width=1)
     font_tag = get_font(14, bold=True)
-    draw.text((180, 220), slide["tag"], fill=(255, 255, 255), font=font_tag)
+    draw.text((180, 222), slide["tag"], fill=(255, 255, 255), font=font_tag)
 
     # Title & Subtitle
     font_title = get_font(46, bold=True)
@@ -142,14 +145,13 @@ def render_slide(slide, index):
     start_y = 420
     for i, b in enumerate(slide["bullets"]):
         y = start_y + i * 90
-        # Bullet circle
         draw.ellipse([(165, y + 6), (185, y + 26)], fill=slide["color"])
         draw.text((215, y), b, fill=(226, 232, 240), font=font_bullet)
 
-    # Caption / Subtitle Box at Bottom
+    # Bottom Audio Indicator Box
     draw.rounded_rectangle([(100, 890), (WIDTH - 100, 1010)], radius=18, fill=(2, 6, 23), outline=(2, 132, 199), width=2)
     font_cap_label = get_font(15, bold=True)
-    draw.text((140, 910), "🎤 NARRATION & CAPTIONS", fill=(56, 189, 248), font=font_cap_label)
+    draw.text((140, 910), "🎙️ NEURAL AI VOICE NARRATION (Aria Neural)", fill=(56, 189, 248), font=font_cap_label)
 
     font_cap = get_font(21)
     draw.text((140, 945), slide["speech"], fill=(248, 250, 252), font=font_cap)
@@ -158,29 +160,29 @@ def render_slide(slide, index):
     img.save(png_path)
     return png_path
 
-def generate_audio(slide, index):
-    engine = pyttsx3.init()
-    engine.setProperty("rate", 160)
-    audio_path = os.path.join(OUTPUT_DIR, f"audio_{index}.wav")
-    engine.save_to_file(slide["speech"], audio_path)
-    engine.runAndWait()
-    return audio_path
+async def generate_neural_speech(text, output_path):
+    import edge_tts
+    communicate = edge_tts.Communicate(text, NEURAL_VOICE, rate="+5%")
+    await communicate.save(output_path)
 
 def main():
-    print("🎬 Generating presentation slides and synthesized speech narration...")
+    print("🎬 Generating presentation with Neural AI Voice Narration...")
     clips = []
 
     for i, slide in enumerate(SLIDES):
-        print(f"  Rendering Slide {i+1}/{len(SLIDES)}: {slide['tag']}...")
+        print(f"  [Slide {i+1}/5] Rendering visual frame and synthesizing Neural Voice ({slide['tag']})...")
         img_path = render_slide(slide, i)
-        audio_path = generate_audio(slide, i)
+        audio_path = os.path.join(OUTPUT_DIR, f"audio_neural_{i}.mp3")
+
+        # Generate Neural Audio with edge-tts
+        asyncio.run(generate_neural_speech(slide["speech"], audio_path))
 
         # Get audio duration using ffprobe
         probe_cmd = f'ffprobe -i "{audio_path}" -show_entries format=duration -v quiet -of csv="p=0"'
         duration_str = subprocess.check_output(probe_cmd, shell=True).decode().strip()
-        duration = float(duration_str) + 1.0 # 1 sec buffer
+        duration = float(duration_str) + 1.2 # 1.2s smooth slide transition buffer
         
-        # Create individual video clip for this slide
+        # Create individual video clip
         clip_path = os.path.join(OUTPUT_DIR, f"clip_{i}.mp4")
         create_clip_cmd = f'ffmpeg -y -loop 1 -i "{img_path}" -i "{audio_path}" -c:v libx264 -tune stillimage -c:a aac -b:a 192k -pix_fmt yuv420p -t {duration} "{clip_path}"'
         subprocess.check_call(create_clip_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -193,11 +195,11 @@ def main():
             f.write(f"file '{c.replace(os.sep, '/')}'\n")
 
     final_video_path = os.path.join(os.path.dirname(__file__), "..", "demo_video.mp4")
-    print(f"🎥 Merging all clips into final video: {final_video_path}...")
+    print(f"🎥 Merging clips into final high-def demo video with Neural AI Voice...")
     concat_cmd = f'ffmpeg -y -f concat -safe 0 -i "{concat_list_file}" -c copy "{final_video_path}"'
     subprocess.check_call(concat_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-    print("✅ DEMO VIDEO SUCCESSFULLY GENERATED!")
+    print("✅ NEURAL AI VOICE DEMO VIDEO SUCCESSFULLY GENERATED!")
     print(f"📁 Video Location: {os.path.abspath(final_video_path)}")
 
 if __name__ == "__main__":
